@@ -2,7 +2,7 @@ import torch
 from sklearn.metrics import f1_score
 
 def train(model, train_loader, val_loader, test_loader, optimizer, criterion, num_epochs):
-    print_every = 9999
+   # print_every = 9999
     patience = 9999
     epochs_increasing = 0
     last_loss = 100000
@@ -73,10 +73,7 @@ def train(model, train_loader, val_loader, test_loader, optimizer, criterion, nu
             epochs_increasing = 0
 
         last_loss = val_loss
-        if epoch % print_every == 0:
-            print(f"Epoch {epoch+1}/{num_epochs}, Train loss: {running_loss:.4f}, Test loss: {test_loss:.4f}")
+      #  if epoch % print_every == 0:
+      #      print(f"Epoch {epoch+1}/{num_epochs}, Train loss: {running_loss:.4f}, Test loss: {test_loss:.4f}")
             
-    metrics = [train_losses, val_losses, test_losses, train_f1, test_f1]
-
-    # Return the collected metrics
-    return y_test_true, test_pred, metrics
+    return train_losses, val_losses, test_losses, train_f1, test_f1

@@ -3,17 +3,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 def plot_metrics(train_losses, val_losses, test_losses, train_f1, test_f1, num_epochs):
-    train_losses_np = np.array([lst.tolist() + [0] * (num_epochs - len(lst)) for lst in train_losses])
-    test_losses_np = np.array([lst.tolist() + [0] * (num_epochs - len(lst)) for lst in test_losses])
-    val_losses_np = np.array([lst.tolist() + [0] * (num_epochs - len(lst)) for lst in val_losses])
-    train_f1_np = np.array([lst.tolist() + [0] * (num_epochs - len(lst)) for lst in train_f1])
-    test_f1_np = np.array([lst.tolist() + [0] * (num_epochs - len(lst)) for lst in test_f1])
-
-    train_losses_np[train_losses_np == 0] = np.nan
-    test_losses_np[test_losses_np == 0] = np.nan
-    val_losses_np[val_losses_np == 0] = np.nan
-    train_f1_np[train_f1_np == 0] = np.nan
-    test_f1_np[test_f1_np == 0] = np.nan
+    train_losses_np = np.array([lst.tolist() + [np.nan] * (num_epochs - len(lst)) for lst in train_losses])
+    test_losses_np = np.array([lst.tolist() + [np.nan] * (num_epochs - len(lst)) for lst in test_losses])
+    val_losses_np = np.array([lst.tolist() + [np.nan] * (num_epochs - len(lst)) for lst in val_losses])
+    train_f1_np = np.array([lst.tolist() + [np.nan] * (num_epochs - len(lst)) for lst in train_f1])
+    test_f1_np = np.array([lst.tolist() + [np.nan] * (num_epochs - len(lst)) for lst in test_f1])
 
     train_losses_mean = np.nanmean(train_losses_np, axis=0)
     train_losses_std = np.nanstd(train_losses_np, axis=0)
@@ -46,7 +40,6 @@ def plot_metrics(train_losses, val_losses, test_losses, train_f1, test_f1, num_e
     plt.legend()
     plt.grid(True)
     plt.show()
-
     return test_f1_np
 
 def plot_aug(real, aug, sub, net):
@@ -55,7 +48,7 @@ def plot_aug(real, aug, sub, net):
     plt.plot(real[sub, :, net], label='real')
     plt.plot(aug[sub, :, net], label='aug')
     plt.legend()
-    plt.title(f'Augmented data');
+    plt.title(f'Augmented data')
     plt.show()
     
 def plot(real, subs, nets, colors, title):
@@ -71,47 +64,54 @@ def get_stats(values):
     std = np.nanstd(values, axis=0)
     return np.max(mean), std[np.argmax(mean)]
 
-def plot_results(new_real_f1, new_aug_f1, new_comb_f1, old_real_f1, old_aug_f1, old_comb_f1):
-    new_real_f1_mean, new_real_f1_std = get_stats(new_real_f1)
-    new_aug_f1_mean, new_aug_f1_std = get_stats(new_aug_f1)
-    new_comb_f1_mean, new_comb_f1_std = get_stats(new_comb_f1)
-
-    old_real_f1_mean, old_real_f1_std = get_stats(old_real_f1)
-    old_aug_f1_mean, old_aug_f1_std = get_stats(old_aug_f1)
-    old_comb_f1_mean, old_comb_f1_std = get_stats(old_comb_f1)
+def plot_results(real_f1_orig, aug_f1_orig, comb_f1_orig):
+    real_f1 = real_f1_orig.copy()
+    aug_f1 = aug_f1_orig.copy()
+    comb_f1 = comb_f1_orig.copy()
     
-    f1_means = [new_real_f1_mean, new_aug_f1_mean, new_comb_f1_mean,
-                 old_real_f1_mean, old_aug_f1_mean, old_comb_f1_mean]
+    real_f1_mean, real_f1_std = get_stats(real_f1)
+    f1_means = []
+    f1_stds = []
+    f1_means.append(real_f1_mean)
+    f1_stds.append(real_f1_std)
 
-    f1_stds = [new_real_f1_std, new_aug_f1_std, new_comb_f1_std,
-                old_real_f1_std, old_aug_f1_std, old_comb_f1_std]
+    for f1 in aug_f1:
+        mean, std = get_stats(f1)
+        f1_means.append(mean)
+        f1_stds.append(std)
 
-    text = ["new real", "new augmented", "new combined",
-            "old real", "old augmented", "old combined"]
+    for f1 in comb_f1:
+        mean, std = get_stats(f1)
+        f1_means.append(mean)
+        f1_stds.append(std)
+
+    text = ["Real", "Augmented (baseline)", "Augmented (diffusion)", "Augmented (transformer)",
+            "Combined (baseline)", "Combined (diffusion)", "Combined (transformer)"]
     
     plt.figure(figsize=(8, 6))
     plt.errorbar(text, f1_means, yerr=f1_stds)
-    plt.xticks(rotation=30)
+    plt.xticks(rotation=55)
     plt.xlabel('Training dataset')
     plt.ylabel('F1 score')
     plt.title('Test F1 score')
     plt.grid(True)
     plt.show()
     
-    new_real_f1 = np.nanmax(new_real_f1, axis=1)
-    new_aug_f1 = np.nanmax(new_aug_f1, axis=1)
-    new_comb_f1 = np.nanmax(new_comb_f1, axis=1)
-    old_real_f1 = np.nanmax(old_real_f1, axis=1)
-    old_aug_f1 = np.nanmax(old_aug_f1, axis=1)
-    old_comb_f1 = np.nanmax(old_comb_f1, axis=1)
+    real_f1 = np.nanmax(real_f1, axis=1)
+    for i in range(len(aug_f1)):
+        aug_f1[i] = np.nanmax(aug_f1[i], axis=1)
+        comb_f1[i] = np.nanmax(comb_f1[i], axis=1)
     
-    combined_data = np.concatenate([new_real_f1, new_aug_f1, new_comb_f1,
-                                    old_real_f1, old_aug_f1, old_comb_f1])
+    aug_f1 = np.array(aug_f1).flatten()
+    comb_f1 = np.array(comb_f1).flatten()
+    
+    combined_data = np.concatenate([real_f1, aug_f1, comb_f1])
     labels = np.repeat(text, 15)
     sns.boxplot(x=labels, y=combined_data)
-    plt.xticks(rotation=30)
+    plt.xticks(rotation=55)
     plt.title('Test F1 score')
     plt.xlabel('Training dataset')
     plt.ylabel('F1 score')
     plt.show()
-    
+    print(f1_means)
+    print(f1_stds)
